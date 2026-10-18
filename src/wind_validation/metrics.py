@@ -38,7 +38,9 @@ class Trace:
 @dataclass(frozen=True)
 class ScenarioMetrics:
     scenario: str
-    steady_state_error_pct: float
+    steady_state_reference: str | None
+    steady_state_reference_rpm: float | None
+    steady_state_error_pct: float | None
     overshoot_pct: float
     settling_time_s: float | None
     peak_speed_deviation_pct: float
@@ -131,7 +133,9 @@ def calculate_metrics(name: str, trace: Trace) -> ScenarioMetrics:
         )
         transition_time = time[transition]
         end = [value for t, value in zip(time, speed) if t >= max(time[-1] - 5.0, transition_time)]
-        steady_error = abs(sum(end) / len(end) - rated) / rated * 100.0
+        reference_speed = rated
+        reference_name = "rated_speed"
+        steady_error = abs(sum(end) / len(end) - reference_speed) / reference_speed * 100.0
         post_step = [value for t, value in zip(time, speed) if t >= transition_time]
         overshoot = max(0.0, max(post_step) - rated) / rated * 100.0
         settling = _settling_time(time, speed, rated, transition_time, 0.02 * rated)
@@ -148,15 +152,21 @@ def calculate_metrics(name: str, trace: Trace) -> ScenarioMetrics:
             len(trace) - 1,
         )
         baseline = speed[max(0, gust_start - 1)]
+        reference_speed = baseline
+        reference_name = "pre_gust_speed"
         peak_deviation = max(abs(value - baseline) for value in speed[gust_start:]) / rated * 100.0
         recovery = _settling_time(
             time, speed, baseline, time[gust_end], 0.02 * rated
         )
-        steady_error = abs(speed[-1] - baseline) / rated * 100.0
+        steady_error = abs(speed[-1] - reference_speed) / reference_speed * 100.0
         overshoot = max(0.0, max(speed[gust_start:]) - rated) / rated * 100.0
-        settling = recovery
+        settling = None
     else:
-        steady_error = abs(speed[-1] - rated) / rated * 100.0
+        # The saturation scenario is a transient actuator-limit test, not a
+        # rated-speed steady-state test; do not report a misleading error.
+        reference_speed = None
+        reference_name = None
+        steady_error = None
         overshoot = max(0.0, max(speed) - rated) / rated * 100.0
         peak_deviation = overshoot
         settling = None
@@ -164,6 +174,8 @@ def calculate_metrics(name: str, trace: Trace) -> ScenarioMetrics:
 
     return ScenarioMetrics(
         scenario=name,
+        steady_state_reference=reference_name,
+        steady_state_reference_rpm=reference_speed,
         steady_state_error_pct=steady_error,
         overshoot_pct=overshoot,
         settling_time_s=settling,

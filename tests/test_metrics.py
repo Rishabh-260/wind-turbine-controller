@@ -57,6 +57,8 @@ def test_tracking_metrics_measure_error_overshoot_and_settling(tmp_path):
             for i in range(len(speeds))]
     write_trace(path, rows)
     metrics = calculate_metrics("tracking", read_trace(path))
+    assert metrics.steady_state_reference == "rated_speed"
+    assert metrics.steady_state_reference_rpm == pytest.approx(12.0)
     assert metrics.overshoot_pct == pytest.approx(5.0)
     assert metrics.settling_time_s == pytest.approx(2.0)
     assert metrics.steady_state_error_pct == pytest.approx(0.4167, abs=0.001)

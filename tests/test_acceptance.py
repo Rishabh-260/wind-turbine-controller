@@ -47,3 +47,19 @@ def test_acceptance_rejects_pitch_outside_bounds():
     bad = Trace(**{**trace.__dict__, "pitch_angle_deg": tuple(-0.1 for _ in trace.time_s)})
     failures = validate_scenario("tracking", bad, calculate_metrics("tracking", bad))
     assert any("fell below" in failure for failure in failures)
+
+
+def test_saturation_metrics_do_not_claim_a_rated_steady_state_error():
+    metrics = calculate_metrics("saturation", make_trace("saturation"))
+    assert metrics.steady_state_reference is None
+    assert metrics.steady_state_reference_rpm is None
+    assert metrics.steady_state_error_pct is None
+
+
+def test_saturation_acceptance_rejects_excessive_overspeed():
+    trace = make_trace("saturation")
+    excessive_speed = tuple(24.0 for _ in trace.time_s)
+    bad = Trace(**{**trace.__dict__, "rotor_speed_rpm": excessive_speed})
+    metrics = calculate_metrics("saturation", bad)
+    failures = validate_scenario("saturation", bad, metrics)
+    assert any("overshoot" in failure for failure in failures)

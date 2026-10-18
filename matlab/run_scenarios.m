@@ -19,7 +19,8 @@ scenarios = {
     struct('name', 'gust', 'duration_s', 50, ...
         'wind_fn', @(t) 11 + 3 * (t >= 25 && t < 30))
     struct('name', 'saturation', 'duration_s', 40, ...
-        'wind_fn', @(t) 10 + 8 * (t >= 5 && t < 25))
+        'wind_fn', @(t) 10 + 8 * min(max((t - 5) / 5, 0), 1) ...
+            - 8 * min(max((t - 25) / 5, 0), 1))
 };
 
 for k = 1:numel(scenarios)
@@ -33,7 +34,7 @@ end
 function trace = simulate_scenario(scenario, dt)
     ratedSpeed = 12.0;      % rpm
     ratedWind = 12.0;       % m/s
-    pitchEffect = 0.90;     % rpm per degree; intentionally simplified
+    pitchEffect = 1.10;     % rpm per degree; intentionally simplified
     rotorTimeConstant = 2.5; % s
     proportionalGain = 3.0; % deg/rpm
     integralGain = 0.50;    % deg/(rpm*s)
@@ -59,8 +60,10 @@ function trace = simulate_scenario(scenario, dt)
         end
 
         errorRpm = rotorSpeed(i - 1) - ratedSpeed;
+        pitchFeedForward = max(0, (freeRotorSpeed - ratedSpeed) / pitchEffect);
         candidateIntegral = integralError + errorRpm * dt;
-        rawCommand = proportionalGain * errorRpm + integralGain * candidateIntegral;
+        rawCommand = pitchFeedForward + proportionalGain * errorRpm + ...
+            integralGain * candidateIntegral;
         limitedCommand = min(max(rawCommand, pitchMin), pitchMax);
 
         % Conditional integration prevents the integral term winding up at a limit.
@@ -68,7 +71,8 @@ function trace = simulate_scenario(scenario, dt)
             (rawCommand < pitchMin && errorRpm < 0);
         if ~pushingFurtherIntoLimit
             integralError = candidateIntegral;
-            rawCommand = proportionalGain * errorRpm + integralGain * integralError;
+            rawCommand = pitchFeedForward + proportionalGain * errorRpm + ...
+                integralGain * integralError;
             limitedCommand = min(max(rawCommand, pitchMin), pitchMax);
         end
 

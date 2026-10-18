@@ -36,15 +36,17 @@ def validate_scenario(name: str, trace: Trace, metrics: ScenarioMetrics) -> list
         if metrics.settling_time_s is None or metrics.settling_time_s > 20.0:
             failures.append("tracking did not settle within 20.0 s of the wind step")
     elif name == "gust":
-        if metrics.peak_speed_deviation_pct > 40.0:
+        if metrics.peak_speed_deviation_pct > 30.0:
             failures.append(
-                f"gust speed deviation {metrics.peak_speed_deviation_pct:.2f}% exceeds 40.00%"
+                f"gust speed deviation {metrics.peak_speed_deviation_pct:.2f}% exceeds 30.00%"
             )
         if metrics.recovery_time_s is None or metrics.recovery_time_s > 10.0:
             failures.append("rotor speed did not recover within 10.0 s after the gust")
     elif name == "saturation":
         if not metrics.pitch_limit_reached:
             failures.append("pitch actuator did not reach its upper travel limit")
+        if metrics.overshoot_pct > 25.0:
+            failures.append(f"overshoot {metrics.overshoot_pct:.2f}% exceeds 25.00%")
     else:
         failures.append(f"unknown scenario: {name}")
     return failures

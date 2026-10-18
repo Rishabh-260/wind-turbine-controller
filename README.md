@@ -6,7 +6,7 @@ A compact MATLAB and Python project that simulates a simplified wind turbine pit
 
 ## What it demonstrates
 
-- A discrete-time MATLAB simulation of rotor-speed dynamics, PI pitch control, anti-windup, and pitch actuator limits.
+- A discrete-time MATLAB simulation of rotor-speed dynamics, PI pitch control with wind-based feed-forward, anti-windup, and pitch actuator limits.
 - Python trace validation and pytest regression checks for tracking, gust recovery, and actuator saturation.
 - Automated response plots, JSON metrics, JUnit XML test results, and a compiled LaTeX PDF.
 - GitHub Actions execution of the MATLAB simulation and Python validation on pushes, pull requests, and manual runs.
@@ -47,10 +47,12 @@ The simulation uses a fixed 0.02-second time step, a 12 rpm rated-speed target, 
 | Scenario | Input | Validation |
 | --- | --- | --- |
 | Tracking | Wind steps from 10 to 13 m/s at 5 s | Final tracking error ≤ 2%; overshoot ≤ 10%; settling within 20 s |
-| Gust | Wind rises from 11 to 14 m/s between 25 and 30 s | Peak deviation ≤ 40% of rated speed; return to pre-gust speed within 10 s |
-| Saturation | Wind rises from 10 to 18 m/s between 5 and 25 s | Pitch stays within travel/rate limits and reaches its upper travel limit |
+| Gust | Wind rises from 11 to 14 m/s between 25 and 30 s | Peak deviation ≤ 30% of rated speed; return to pre-gust speed within 10 s |
+| Saturation | Wind ramps from 10 to 18 m/s between 5 and 10 s, holds until 25 s, then ramps down by 30 s | Overshoot ≤ 25%; pitch stays within travel/rate limits and reaches its upper travel limit |
 
 All scenarios also check pitch travel and rate limits. pytest exits nonzero on a failed acceptance check, so CI marks a regression run as failed while still uploading available artifacts.
+
+In `metrics_summary.json`, `steady_state_reference` names the reference used for `steady_state_error_pct` (`rated_speed` for tracking and `pre_gust_speed` for gust). The saturation case is a transient actuator-limit test, so its steady-state reference and error are `null`; use its overshoot and actuator metrics instead. Gust recovery time is reported separately from tracking settling time.
 
 ## Report outputs
 
@@ -62,4 +64,4 @@ All scenarios also check pitch travel and rate limits. pytest exits nonzero on a
 
 ## Model limitations
 
-The rotor plant maps wind speed to a cubic free-running rotor-speed target and models pitch as a linear speed-reduction effect. The simulation does not model blade aerodynamics, structural loads, drivetrain flexibility, sensor noise, grid interaction, or safety systems. Parameters and thresholds are illustrative and should not be used to predict a real turbine's performance.
+The rotor plant maps wind speed to a cubic free-running rotor-speed target and models pitch as a linear speed-reduction effect. Wind feed-forward uses that simplified plant map to anticipate required pitch. The simulation does not model blade aerodynamics, structural loads, drivetrain flexibility, sensor noise, grid interaction, or safety systems. Parameters and thresholds are illustrative and should not be used to predict a real turbine's performance.

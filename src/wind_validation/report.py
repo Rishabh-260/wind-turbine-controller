@@ -59,14 +59,17 @@ def _write_latex(metrics: list, output: Path) -> None:
         "This report summarizes deterministic simulation scenarios for a simplified rotor-speed pitch controller. "
         "The model is an educational validation example, not an industrial turbine model.",
         r"\section{Results}",
-        r"\begin{tabular}{lrrrrrr}",
-        r"Scenario & Error (\%) & Overshoot (\%) & Settle (s) & Peak dev. (\%) & Max pitch (deg) & Max speed (rpm) \\",
+        r"\begin{tabular}{lrrrrrrr}",
+        r"Scenario & Ref. error (\%) & Overshoot (\%) & Settle (s) & Recover (s) & Peak dev. (\%) & Max pitch (deg) & Max speed (rpm) \\",
         r"\hline",
     ]
     for item in metrics:
+        reference = item.steady_state_reference or "N/A"
         lines.append(
-            f"{item.scenario.title()} & {item.steady_state_error_pct:.2f} & "
+            f"{item.scenario.title()} ({reference.replace('_', ' ')}) & "
+            f"{_format(item.steady_state_error_pct)} & "
             f"{item.overshoot_pct:.2f} & {_format(item.settling_time_s)} & "
+            f"{_format(item.recovery_time_s)} & "
             f"{item.peak_speed_deviation_pct:.2f} & {item.max_pitch_deg:.2f} & "
             f"{item.max_speed_rpm:.2f} " + r"\\"
         )
