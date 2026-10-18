@@ -36,7 +36,13 @@ jobs:
       - name: Run MATLAB scenarios
         uses: matlab-actions/run-command@v3
         with:
-          command: run('matlab/run_scenarios.m')
+          command: run(fullfile(pwd,'matlab','run_scenarios.m'))
+
+      - name: Verify MATLAB outputs
+        run: |
+          for scenario in tracking gust saturation; do
+            test -s "artifacts/raw/${scenario}.csv" || { echo "Missing or empty artifacts/raw/${scenario}.csv"; exit 1; }
+          done
 
       - name: Run Python validation tests
         if: always()

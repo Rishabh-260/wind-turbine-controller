@@ -4,10 +4,13 @@
 clearvars;
 close all;
 
-outputDir = fullfile('artifacts', 'raw');
+scriptPath = mfilename('fullpath');
+projectRoot = fileparts(fileparts(scriptPath));
+outputDir = fullfile(projectRoot, 'artifacts', 'raw');
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
 end
+fprintf('Writing scenario traces to %s\n', outputDir);
 
 dt = 0.02;
 scenarios = {
